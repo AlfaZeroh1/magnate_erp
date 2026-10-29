@@ -18,14 +18,14 @@ final class ResourceApi extends BaseApi
     protected function rules(): array
     {
         $need = fn(string $act) => function (Request $r) use ($act) {
-            Auth::require(Resources::get($r->str('name'))['perm'][$act]);
+            Auth::require(Resources::get($r->str('_resource'))['perm'][$act]);
         };
         return [
             'meta'    => $need('view'),
             'list'    => $need('view'),
             'get'     => $need('view'),
             'save'    => function (Request $r) {
-                $res = Resources::get($r->str('name'));
+                $res = Resources::get($r->str('_resource'));
                 Auth::require($res['perm'][$r->int('id') > 0 ? 'edit' : 'create']);
             },
             'delete'  => $need('delete'),
@@ -41,7 +41,7 @@ final class ResourceApi extends BaseApi
     // ------------------------------------------------------------------
     protected function doMeta(): array
     {
-        $r = Resources::get($this->req->str('name'));
+        $r = Resources::get($this->req->str('_resource'));
         $fields = [];
         foreach ($r['fields'] as $key => $f) {
             unset($f['unique']);
@@ -95,7 +95,7 @@ final class ResourceApi extends BaseApi
 
     protected function doList(): array
     {
-        $r = Resources::get($this->req->str('name'));
+        $r = Resources::get($this->req->str('_resource'));
         [$select, $joins] = $this->baseQuery($r);
         $where = [$r['where'] ?? '1=1'];
         $params = [];
@@ -110,7 +110,7 @@ final class ResourceApi extends BaseApi
 
     protected function doGet(): array
     {
-        $r = Resources::get($this->req->str('name'));
+        $r = Resources::get($this->req->str('_resource'));
         [$select, $joins] = $this->baseQuery($r);
         $row = DB::one(sprintf('SELECT %s FROM `%s` t %s WHERE t.id = :id AND %s',
             implode(', ', $select), $r['table'], implode(' ', $joins), $r['where'] ?? '1=1'), ['id' => $this->req->int('id')]);
@@ -120,7 +120,7 @@ final class ResourceApi extends BaseApi
 
     protected function doSave(): array
     {
-        $r = Resources::get($this->req->str('name'));
+        $r = Resources::get($this->req->str('_resource'));
         $id = $this->req->int('id');
         $existing = null;
         if ($id > 0) {
@@ -165,7 +165,7 @@ final class ResourceApi extends BaseApi
 
     protected function doDelete(): array
     {
-        $r = Resources::get($this->req->str('name'));
+        $r = Resources::get($this->req->str('_resource'));
         $id = $this->req->int('id');
         $row = DB::one(sprintf('SELECT * FROM `%s` t WHERE t.id = :id AND %s', $r['table'], $r['where'] ?? '1=1'), ['id' => $id]);
         if (!$row) throw new HttpException('Record not found.', 404);

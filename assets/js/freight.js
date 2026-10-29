@@ -158,10 +158,10 @@
       if (act === 'close' && await confirm({ title: 'Close booking?', text: 'No more space can be sold on it.', confirmText: 'Close' })) { await api('freight.status', { id: ID, status: 'closed' }); load(); }
       if (act === 'reopen') { await api('freight.status', { id: ID, status: 'open' }); load(); }
       if (act === 'expense') {
-        const meta = await get('resource.meta', { name: 'expenses' });
+        const meta = await get('resource.meta', { _resource: 'expenses' });
         modalForm({ title: 'Expense on ' + b.booking_no, icon: 'bi-credit-card-2-back', fields: meta.fields, fx: meta.fx,
           values: { freight_booking_id: ID, freight_booking_id__label: b.booking_no, shipping_agent_id: b.shipping_agent_id, shipping_agent_id__label: b.agent },
-          onSubmit: async (d) => { await api('resource.save', Object.assign({ name: 'expenses', id: 0 }, d)); load(); } });
+          onSubmit: async (d) => { await api('resource.save', Object.assign({}, d, { _resource: 'expenses', id: 0 })); load(); } });
       }
     } catch (e) { }
   });

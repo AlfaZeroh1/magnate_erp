@@ -20,7 +20,7 @@
   /** Mounts a full resource UI into $root. */
   App.mountResource = async function ($root, name, { compact = false } = {}) {
     $root.html(App.skeletonRows(6));
-    const meta = await get('resource.meta', { name }, { quiet: true });
+    const meta = await get('resource.meta', { _resource: name }, { quiet: true });
     let listFields = meta.fields.filter(f => f.list !== false && f.type !== 'textarea');
     if (meta.listOrder) listFields = meta.listOrder.map(n => meta.fields.find(f => f.name === n)).filter(Boolean);
     const tid = 'rt_' + name;
@@ -50,7 +50,7 @@
     const range = { from: '', to: '' };
     const $t = $root.find('#' + tid);
     const dt = table($t, {
-      ajax: (d, cb) => get('resource.list', { name, from: range.from, to: range.to }, { quiet: true }).then(rows => cb({ data: rows })).catch(() => cb({ data: [] })),
+      ajax: (d, cb) => get('resource.list', { _resource: name, from: range.from, to: range.to }, { quiet: true }).then(rows => cb({ data: rows })).catch(() => cb({ data: [] })),
       columns: [
         ...listFields.map(f => ({ data: f.name, defaultContent: '', className: ['money', 'rate', 'number'].includes(f.type) ? 'num' : '', render: cellRender(f) })),
         { data: null, orderable: false, className: 'actions', render: (r) => `
@@ -66,17 +66,17 @@
     });
 
     const open = async (id) => {
-      const values = id ? await get('resource.get', { name, id }) : {};
+      const values = id ? await get('resource.get', { _resource: name, id }) : {};
       modalForm({
         title: (id ? 'Edit ' : 'Add ') + meta.singular.toLowerCase(), icon: meta.icon, fields: meta.fields, values, fx: meta.fx,
-        onSubmit: async (data) => { await api('resource.save', Object.assign({ name, id: id || 0 }, data)); dt.ajax.reload(null, false); }
+        onSubmit: async (data) => { await api('resource.save', Object.assign({}, data, { _resource: name, id: id || 0 })); dt.ajax.reload(null, false); }
       });
     };
     $root.on('click', '[data-add]', () => open(0));
     $root.on('click', '[data-edit]', function () { open($(this).data('edit')); });
     $root.on('click', '[data-del]', async function () {
       if (!(await confirm({ title: `Delete this ${meta.singular.toLowerCase()}?`, text: 'This cannot be undone.', icon: 'warning', confirmText: 'Delete', danger: true }))) return;
-      await api('resource.delete', { name, id: $(this).data('del') }).catch(() => {}); dt.ajax.reload(null, false);
+      await api('resource.delete', { _resource: name, id: $(this).data('del') }).catch(() => {}); dt.ajax.reload(null, false);
     });
     if (hasDate) {
       const iso = (d) => { d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };

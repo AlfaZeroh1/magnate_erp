@@ -579,16 +579,16 @@
         </div>
       </div>`);
     $('#addExp').on('click', async () => {
-      const meta = await get('resource.meta', { name: 'expenses' });
+      const meta = await get('resource.meta', { _resource: 'expenses' });
       modalForm({ title: 'Add expense to ' + D.order.order_no, icon: 'bi-credit-card-2-back', fields: meta.fields, fx: meta.fx,
         values: { order_id: ORDER_ID, order_id__label: D.order.order_no + ' · ' + D.order.customer_name },
-        onSubmit: async (data) => { await api('resource.save', Object.assign({ name: 'expenses', id: 0 }, data)); load(); } });
+        onSubmit: async (data) => { await api('resource.save', Object.assign({}, data, { _resource: 'expenses', id: 0 })); load(); } });
     });
     $('#addOc').on('click', async () => {
-      const meta = await get('resource.meta', { name: 'other_costs' });
+      const meta = await get('resource.meta', { _resource: 'other_costs' });
       modalForm({ title: 'Add other cost', icon: 'bi-plus-slash-minus', fields: meta.fields, fx: meta.fx,
         values: { invoice_id: D.invoice.id, invoice_id__label: D.invoice.invoice_no + ' · ' + D.order.customer_name, customer_id: D.order.customer_id, customer_id__label: D.order.customer_name, currency_id: D.order.currency_id },
-        onSubmit: async (data) => { await api('resource.save', Object.assign({ name: 'other_costs', id: 0 }, data)); load(); } });
+        onSubmit: async (data) => { await api('resource.save', Object.assign({}, data, { _resource: 'other_costs', id: 0 })); load(); } });
     });
   }
 
