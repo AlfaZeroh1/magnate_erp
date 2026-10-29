@@ -1,0 +1,29 @@
+Options -Indexes
+DirectoryIndex index.php
+
+# Never serve internals
+RedirectMatch 404 ^/?(.*/)?(app|sql|docs)(/|$)
+<FilesMatch "\.(sql|md|log|lock|json|sample\.php)$">
+    Require all denied
+</FilesMatch>
+<Files "manifest.webmanifest">
+    Require all granted
+</Files>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+</IfModule>
