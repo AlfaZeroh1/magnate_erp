@@ -337,6 +337,12 @@
   // ------------------------------------------------------------------
   function table(el, opts = {}) {
     const $t = $(el);
+    // A function ajax must not return a Promise: on reload DataTables calls .abort() on the return value.
+    // Also drop responses from superseded requests so a slow earlier load can't overwrite the current one.
+    if (typeof opts.ajax === 'function') {
+      const fn = opts.ajax; let seq = 0;
+      opts = Object.assign({}, opts, { ajax: function (d, cb, s) { const n = ++seq; fn.call(this, d, (j) => { if (n === seq) cb(j); }, s); } });
+    }
     if ($.fn.dataTable.isDataTable($t)) $t.DataTable().destroy();
     return $t.DataTable(Object.assign({
       responsive: true, autoWidth: false, pageLength: 25, lengthMenu: [10, 25, 50, 100, 500],
