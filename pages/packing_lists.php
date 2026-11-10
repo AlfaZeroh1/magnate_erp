@@ -7,7 +7,7 @@
 </div>
 <div class="card"><div class="card-body">
   <table class="table table-hover w-100" id="plTable"><thead><tr>
-    <th>Packing list</th><th>Consignment</th><th>Order</th><th>Customer</th><th>Departure</th><th>Drop point</th><th>AWB</th><th class="num">Stems</th><th class="num">Boxes</th><th>Invoice</th><th></th>
+    <th>Packing list</th><th>Consignment</th><th>Order</th><th>Customer</th><th>Departure</th><th>Entry</th><th>AWB</th><th class="num">Stems</th><th class="num">Boxes</th><th>Invoice</th><th></th>
   </tr></thead></table>
 </div></div>
 <?php ob_start(); ?>

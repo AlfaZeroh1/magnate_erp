@@ -93,6 +93,7 @@ final class OrdersApi extends BaseApi
             'other_costs' => DB::all('SELECT coc.cost_date, coc.details, coc.selling_price, coc.buying_price, c.code AS currency, coc.selling_base, coc.buying_base, i.invoice_no
                                         FROM customer_other_costs coc JOIN invoices i ON i.id = coc.invoice_id JOIN currencies c ON c.id = coc.currency_id
                                        WHERE i.order_id = :o ORDER BY coc.cost_date', ['o' => $order['id']]),
+            'kg_per_box'  => (float)(setting('kg_per_box') ?: 15),
             'editable'    => $stageIdx <= 1 && Auth::can('orders.edit'),
             'can' => [
                 'edit' => Auth::can('orders.edit'), 'confirm' => Auth::can('orders.confirm'), 'receive' => Auth::can('orders.receive'),
@@ -428,7 +429,9 @@ final class OrdersApi extends BaseApi
 
     protected function doInvoice(): array
     {
-        $id = OS::createInvoice(OS::find($this->req->int('id')), $this->req->date('invoice_date'));
+        $kg = $this->req->numOrNull('net_weight_kg');
+        if ($kg === null || $kg <= 0) throw HttpException::validation(['net_weight_kg' => 'Enter the net weight in kg.'], 'Enter the net weight (kg) before invoicing.');
+        $id = OS::createInvoice(OS::find($this->req->int('id')), $this->req->date('invoice_date'), $kg);
         return ['invoice_id' => $id, '_message' => 'Invoice created.'];
     }
 

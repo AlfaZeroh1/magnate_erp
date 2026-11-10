@@ -71,7 +71,7 @@ $jlabel = $jid ? App\Core\DB::val("SELECT CONCAT(o.order_no, ' · ', c.name) FRO
         <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h3><i class="bi bi-flower3 me-1"></i>Lines</h3></div><div class="card-body table-responsive">
           <table class="table table-sm"><thead><tr><th>Variety</th><th>Len</th><th class="num">Ordered</th><th class="num">Confirmed</th><th class="num">Received</th><th class="num">Price</th></tr></thead><tbody>
           ${d.lines.map(l => { const c = l.allocations.reduce((s, a) => s + num(a.confirmed_stems), 0), r = l.allocations.reduce((s, a) => s + num(a.received_stems), 0);
-            return `<tr><td>${esc(l.variety)}</td><td>${esc(l.length)}</td><td class="num">${fmt.int(l.stems)}</td><td class="num">${fmt.int(c)}</td><td class="num ${r && r < l.stems ? 'variance-neg' : ''}">${fmt.int(r)}</td><td class="num">${fmt.money(l.selling_price, 4)}</td></tr>`; }).join('')}
+            return `<tr><td>${App.vimg(l.variety_image, 24)}${esc(l.variety)}</td><td>${esc(l.length)}</td><td class="num">${fmt.int(l.stems)}</td><td class="num">${fmt.int(c)}</td><td class="num ${r && r < l.stems ? 'variance-neg' : ''}">${fmt.int(r)}</td><td class="num">${fmt.money(l.selling_price, 4)}</td></tr>`; }).join('')}
           </tbody></table></div></div></div>
       </div>
 

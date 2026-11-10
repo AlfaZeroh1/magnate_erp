@@ -8,9 +8,9 @@
     <div class="card mb-3"><div class="card-header"><h3>Company</h3></div><div class="card-body">
       <form id="sf" class="row g-3"><fieldset class="row g-3 m-0 p-0" <?= $edit ? '' : 'disabled' ?>>
         <?php foreach ([
-          ['company_name', 'Company name', 6], ['company_tagline', 'Tagline', 6], ['company_address', 'Address', 12], ['company_email', 'Email', 4], ['company_phone', 'Phone', 4],
+          ['company_name', 'Company name', 6], ['company_tagline', 'Tagline', 6], ['company_address', 'Address', 12], ['company_email', 'Email', 4], ['company_email2', 'Second email', 4], ['company_phone', 'Cell / phone', 4],
           ['company_website', 'Website', 4], ['company_pin', 'KRA PIN / VAT no', 4], ['default_origin', 'Default airport of origin', 4], ['volumetric_divisor', 'Volumetric divisor (cm³/kg)', 4],
-          ['doc_accent', 'Document accent colour', 4],
+          ['kg_per_box', 'Net weight per box (kg)', 4], ['doc_accent', 'Document accent colour', 4],
         ] as [$k, $label, $col]): ?>
           <div class="col-md-<?= $col ?>"><label class="form-label"><?= e($label) ?></label>
             <input class="form-control" name="<?= $k ?>" <?= $k === 'doc_accent' ? 'type="color" style="height:38px"' : '' ?> value="<?= e(setting($k)) ?>"></div>
@@ -23,8 +23,8 @@
   </div>
   <div class="col-lg-4">
     <div class="card mb-3"><div class="card-header"><h3>Logo</h3></div><div class="card-body text-center">
-      <div class="p-3 rounded mb-3" style="background:#fff;border:1px dashed var(--mg-border)"><img src="<?= asset('img/logo.png') ?>" id="logoPreview" alt="Logo" style="max-width:100%;max-height:90px"></div>
-      <p class="small text-secondary">Used on all documents as <code>assets/img/logo.png</code>. A wide PNG with a transparent background looks best (e.g. 1440×360).</p>
+      <div class="p-3 rounded mb-3" style="background:#fff;border:1px dashed var(--mg-border)"><img src="<?= e(doc_logo_url()) ?>" id="logoPreview" alt="Logo" style="max-width:100%;max-height:90px"></div>
+      <p class="small text-secondary">Printed on every document (invoices, packing lists, statements…). PNG with a transparent background. The app icon and favicons are not affected.</p>
       <?php if ($edit): ?><label class="btn btn-light"><i class="bi bi-upload me-1"></i>Upload new PNG<input type="file" hidden accept="image/png" id="logoFile"></label><?php endif; ?>
     </div></div>
   </div>

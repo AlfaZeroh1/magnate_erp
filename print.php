@@ -35,7 +35,7 @@ try {
 
     $company = [
         'name' => setting('company_name', 'Magnate Flowers Limited'), 'tagline' => setting('company_tagline'),
-        'address' => setting('company_address'), 'email' => setting('company_email'), 'phone' => setting('company_phone'),
+        'address' => setting('company_address'), 'email' => setting('company_email'), 'email2' => setting('company_email2'), 'phone' => setting('company_phone'),
         'website' => setting('company_website'), 'pin' => setting('company_pin'),
     ];
     $accent = preg_match('/^#[0-9a-fA-F]{6}$/', (string)setting('doc_accent')) ? setting('doc_accent') : '#BE185D';

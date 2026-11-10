@@ -1,10 +1,11 @@
 /* Generic list + modal CRUD for any resource declared in app/Core/Resources.php */
 (function () {
-  const { get, api, esc, fmt, modalForm, table, confirm, MG } = App;
+  const { get, api, esc, fmt, modalForm, table, confirm, vimg, MG } = App;
 
   function cellRender(f) {
     return (v, t, r) => {
       if (t !== 'display') return f.type === 'select' ? r[f.name + '__label'] : v;
+      if (f.type === 'image') return vimg(v, 36);
       switch (f.type) {
         case 'select': return esc(r[f.name + '__label'] || '');
         case 'money': return v === null || v === undefined ? '' : fmt.money(v);
@@ -15,6 +16,14 @@
         default: return esc(v);
       }
     };
+  }
+
+  /** Plain object, or multipart FormData when the form carries a picture. */
+  function payload(data) {
+    if (!Object.values(data).some(v => v instanceof File)) return data;
+    const fd = new FormData();
+    Object.entries(data).forEach(([k, v]) => { if (v === null || v === undefined) return; if (Array.isArray(v)) v.forEach(x => fd.append(k + '[]', x)); else fd.append(k, v); });
+    return fd;
   }
 
   /** Mounts a full resource UI into $root. */
@@ -52,7 +61,7 @@
     const dt = table($t, {
       ajax: (d, cb) => get('resource.list', { _resource: name, from: range.from, to: range.to }, { quiet: true }).then(rows => cb({ data: rows })).catch(() => cb({ data: [] })),
       columns: [
-        ...listFields.map(f => ({ data: f.name, defaultContent: '', className: ['money', 'rate', 'number'].includes(f.type) ? 'num' : '', render: cellRender(f) })),
+        ...listFields.map(f => ({ data: f.name, defaultContent: '', orderable: f.type !== 'image', width: f.type === 'image' ? '44px' : undefined, className: ['money', 'rate', 'number'].includes(f.type) ? 'num' : '', render: cellRender(f) })),
         { data: null, orderable: false, className: 'actions', render: (r) => `
           ${Object.entries(meta.rowDocs || {}).map(([d, label]) => `<a class="btn btn-sm btn-light" target="_blank" href="print.php?doc=${d}&id=${r.id}&src=${name}" title="${esc(label)}"><i class="bi bi-printer"></i></a>`).join('')}
           ${meta.statement ? `<a class="btn btn-sm btn-light" href="index.php?p=statements&type=${meta.statement}&id=${r.id}" title="Statement"><i class="bi bi-file-earmark-ruled"></i></a>` : ''}
@@ -69,7 +78,7 @@
       const values = id ? await get('resource.get', { _resource: name, id }) : {};
       modalForm({
         title: (id ? 'Edit ' : 'Add ') + meta.singular.toLowerCase(), icon: meta.icon, fields: meta.fields, values, fx: meta.fx,
-        onSubmit: async (data) => { await api('resource.save', Object.assign({}, data, { _resource: name, id: id || 0 })); dt.ajax.reload(null, false); }
+        onSubmit: async (data) => { await api('resource.save', payload(Object.assign({}, data, { _resource: name, id: id || 0 }))); dt.ajax.reload(null, false); }
       });
     };
     $root.on('click', '[data-add]', () => open(0));

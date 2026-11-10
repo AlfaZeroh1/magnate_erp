@@ -18,7 +18,7 @@
   .page { width: <?= $landscape ? '297mm' : '210mm' ?>; min-height: <?= $landscape ? '210mm' : '297mm' ?>; margin: 18px auto; background: #fff; padding: 14mm 14mm 12mm; box-shadow: 0 10px 40px rgba(15,23,42,.12); position: relative; display: flex; flex-direction: column; }
   .page::before { content: ''; position: absolute; left: 0; top: 0; right: 0; height: 6px; background: linear-gradient(90deg, var(--green), var(--accent)); }
   header.doc { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-  header.doc img { height: 58px; }
+  header.doc img { height: 104px; width: auto; }
   header.doc .co { text-align: right; font-size: 11px; color: var(--muted); line-height: 1.55; }
   header.doc .co strong { color: var(--ink); font-size: 13px; }
   .titlebar { display: flex; justify-content: space-between; align-items: flex-end; margin: 18px 0 14px; gap: 16px; flex-wrap: wrap; }
@@ -54,6 +54,12 @@
   .note { font-size: 10.5px; color: var(--muted); margin: 10px 0; }
   .sign { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 26px; }
   .sign div { border-top: 1px solid var(--ink); padding-top: 4px; font-size: 10px; color: var(--muted); }
+  .vimg { width: 26px; height: 26px; object-fit: cover; border-radius: 5px; vertical-align: middle; margin-right: 6px; border: 1px solid var(--line); }
+  .banks .kv span:nth-child(even) { text-align: left; }
+  table.t.dense { font-size: 9.5px; } table.t.dense td, table.t.dense th { padding: 4px 5px; }
+  table.t thead tr.sub th { background: #1f6f43; font-size: 9px; text-transform: none; border-radius: 0 !important; }
+  table.t td.lenbox { border-left: 1px solid var(--line); }
+  .alert-note { border: 1px solid #fcd34d; background: #fffbeb; color: #92400e; border-radius: 10px; padding: 8px 12px; font-weight: 600; margin-bottom: 12px; }
   .spacer { flex: 1; }
   footer.doc { margin-top: 14px; padding-top: 8px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; font-size: 9.5px; color: var(--muted); }
   .pagebreak { page-break-after: always; break-after: page; }

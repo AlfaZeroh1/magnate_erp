@@ -277,3 +277,11 @@ table.dataTable td.dt-actions, td.actions { white-space: nowrap; text-align: rig
 .sticky-actions { position: sticky; bottom: 0; background: var(--mg-card); border-top: 1px solid var(--mg-border); padding: .75rem 1rem; z-index: 5; }
 .cmd-k { font-size: .7rem; border: 1px solid var(--mg-border); border-radius: 6px; padding: 0 .35rem; color: var(--bs-secondary-color); }
 @media print { .mg-sidebar, .mg-topbar, .no-print { display: none !important; } .mg-main { margin: 0; } }
+
+/* ---------- Variety photos ---------- */
+.vimg { display: inline-flex; align-items: center; justify-content: center; object-fit: cover; border-radius: 6px; border: 1px solid var(--mg-border); background: var(--mg-surface-2, #f1f5f9); vertical-align: middle; flex: none; margin-right: 6px; }
+img.vimg { cursor: zoom-in; }
+.vimg-none { color: #94a3b8; font-size: 13px; }
+.img-field .img-preview { width: 72px; height: 72px; border-radius: 10px; border: 1px dashed var(--mg-border); display: flex; align-items: center; justify-content: center; overflow: hidden; color: #94a3b8; font-size: 26px; flex: none; }
+.img-field .img-preview img { width: 100%; height: 100%; object-fit: cover; }
+.select2-results__option .vimg, .select2-selection__rendered .vimg { margin-right: 6px; }

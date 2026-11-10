@@ -11,7 +11,8 @@ namespace App\Core;
  * near-identical control/model/view files from v1.
  *
  * Field keys:
- *   type      text|textarea|email|tel|number|money|rate|date|select|switch|combo|static
+ *   type      text|textarea|email|tel|number|money|rate|date|select|switch|combo|static|image
+ *   dir       for image fields: sub-folder of uploads/ the picture is stored in
  *   source    options source key (see sources()) for select fields
  *   fills     [targetField => optionExtraKey] auto-fill other fields when a select changes
  *   fxOf      for money fields: show "≈ KES" hint using this resource's fx block
@@ -25,7 +26,7 @@ final class Resources
             'customers'       => ['sql' => "SELECT c.id, c.name AS text, c.code, c.currency_id, c.drop_point_id FROM customers c WHERE c.is_active = 1", 'search' => ['c.name', 'c.code'], 'order' => 'c.name'],
             'farms'           => ['sql' => "SELECT f.id, f.name AS text, f.code, f.currency_id FROM farms f WHERE f.is_active = 1", 'search' => ['f.name', 'f.code'], 'order' => 'f.name'],
             'shipping_agents' => ['sql' => "SELECT a.id, a.name AS text, a.currency_id FROM shipping_agents a WHERE a.is_active = 1", 'search' => ['a.name'], 'order' => 'a.name'],
-            'varieties'       => ['sql' => "SELECT v.id, v.name AS text, pc.name AS category FROM varieties v LEFT JOIN product_categories pc ON pc.id = v.category_id WHERE v.is_active = 1", 'search' => ['v.name', 'pc.name'], 'order' => 'v.name'],
+            'varieties'       => ['sql' => "SELECT v.id, v.name AS text, pc.name AS category, v.colour, v.image FROM varieties v LEFT JOIN product_categories pc ON pc.id = v.category_id WHERE v.is_active = 1", 'search' => ['v.name', 'pc.name'], 'order' => 'v.name'],
             'lengths'         => ['sql' => "SELECT l.id, l.name AS text FROM lengths l WHERE l.is_active = 1", 'search' => ['l.name'], 'order' => 'l.sort_order, l.name'],
             'order_by'        => ['sql' => "SELECT o.id, o.name AS text FROM order_by o WHERE o.is_active = 1", 'search' => ['o.name'], 'order' => 'o.name'],
             'box_types'       => ['sql' => "SELECT b.id, b.name AS text FROM box_types b WHERE b.is_active = 1", 'search' => ['b.name'], 'order' => 'b.name'],
@@ -78,7 +79,7 @@ final class Resources
                     'email'          => ['label' => 'Email', 'type' => 'email'],
                     'phone'          => ['label' => 'Phone', 'type' => 'tel'],
                     'country_id'     => ['label' => 'Country', 'type' => 'select', 'source' => 'countries'],
-                    'drop_point_id'  => ['label' => 'Default drop point', 'type' => 'select', 'source' => 'drop_points'],
+                    'drop_point_id'  => ['label' => 'Default entry', 'type' => 'select', 'source' => 'drop_points'],
                     'truck'          => ['label' => 'Truck', 'type' => 'text', 'list' => false],
                     'currency_id'    => ['label' => 'Currency', 'type' => 'select', 'source' => 'currencies', 'required' => true],
                     'terms'          => ['label' => 'Incoterm', 'type' => 'combo', 'options' => $terms, 'col' => 3],
@@ -122,13 +123,15 @@ final class Resources
                     'name'        => ['label' => 'Variety', 'type' => 'text', 'required' => true, 'unique' => true, 'col' => 12],
                     'category_id' => ['label' => 'Category / group', 'type' => 'select', 'source' => 'categories'],
                     'colour'      => ['label' => 'Colour', 'type' => 'text'],
+                    'image'       => ['label' => 'Photo', 'type' => 'image', 'dir' => 'varieties', 'col' => 12, 'help' => 'JPG, PNG or WEBP up to 3 MB. Shown wherever the variety appears, for easy recognition.'],
                 ] + $statusField,
                 'order' => 't.name',
+                'listOrder' => ['image', 'name', 'category_id', 'colour', 'is_active'],
             ],
 
             // ---------------- SETUP LISTS ----------------
             'countries'          => self::lookup('Countries', 'countries', 'bi-globe2', ['iso2' => ['label' => 'ISO code', 'type' => 'text', 'col' => 4]]),
-            'drop_points'        => self::lookup('Drop Points', 'drop_points', 'bi-geo-alt', ['address' => ['label' => 'Address', 'type' => 'text']]),
+            'drop_points'        => array_merge(self::lookup('Entries', 'drop_points', 'bi-geo-alt', ['address' => ['label' => 'Address', 'type' => 'text']]), ['singular' => 'Entry']),
             'product_categories' => self::lookup('Categories', 'product_categories', 'bi-collection'),
             'box_types'          => self::lookup('Box Types', 'box_types', 'bi-box', [
                 'length_cm' => ['label' => 'Length (cm)', 'type' => 'number', 'col' => 4],
@@ -160,6 +163,8 @@ final class Resources
                     'account_name'    => ['label' => 'Account name', 'type' => 'text', 'required' => true],
                     'account_number'  => ['label' => 'Account number', 'type' => 'text', 'required' => true],
                     'swift_code'      => ['label' => 'SWIFT', 'type' => 'text'],
+                    'bank_code'       => ['label' => 'Bank code', 'type' => 'text', 'col' => 3, 'list' => false],
+                    'branch_code'     => ['label' => 'Branch code', 'type' => 'text', 'col' => 3, 'list' => false],
                     'currency_id'     => ['label' => 'Currency', 'type' => 'select', 'source' => 'currencies'],
                     'sort_order'      => ['label' => 'Order', 'type' => 'number', 'default' => 0, 'list' => false],
                     'show_on_invoice' => ['label' => 'Show on invoices', 'type' => 'switch', 'default' => 1],
@@ -235,6 +240,7 @@ final class Resources
                     'shipment_details'    => ['label' => 'Shipment details', 'type' => 'text', 'col' => 12],
                     's_number'            => ['label' => 'S number', 'type' => 'text', 'col' => 4],
                     'boxes'               => ['label' => 'Boxes', 'type' => 'number', 'col' => 4],
+                    'net_weight_kg'       => ['label' => 'Net weight (kg)', 'type' => 'number', 'col' => 4, 'list' => false],
                     'currency_id'         => ['label' => 'Currency', 'type' => 'select', 'source' => 'currencies', 'required' => true, 'col' => 4],
                     'total'               => ['label' => 'Price', 'type' => 'money', 'required' => true, 'col' => 4],
                     'exchange_rate'       => ['label' => 'Exchange rate', 'type' => 'rate', 'col' => 4, 'list' => false],

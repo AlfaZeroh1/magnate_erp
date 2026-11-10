@@ -32,7 +32,7 @@ final class PricingApi extends BaseApi
         foreach (['farm_id' => 'fp.farm_id', 'variety_id' => 'fp.variety_id', 'length_id' => 'fp.length_id'] as $k => $col) {
             if ($v = $this->req->intOrNull($k)) { $w[] = "$col = :$k"; $p[$k] = $v; }
         }
-        return DB::all("SELECT fp.*, f.name AS farm, v.name AS variety, pc.name AS category, l.name AS length, c.code AS currency,
+        return DB::all("SELECT fp.*, f.name AS farm, v.name AS variety, v.image AS variety_image, v.colour, pc.name AS category, l.name AS length, c.code AS currency,
                                sp.price AS general_selling, spc.code AS general_currency
                           FROM farm_prices fp
                           JOIN farms f ON f.id = fp.farm_id
@@ -128,7 +128,7 @@ final class PricingApi extends BaseApi
     {
         $w = ['1=1']; $p = [];
         if ($v = $this->req->intOrNull('variety_id')) { $w[] = 'sp.variety_id = :v'; $p['v'] = $v; }
-        return DB::all("SELECT sp.*, v.name AS variety, pc.name AS category, l.name AS length, c.code AS currency, u.full_name AS updated_by_name,
+        return DB::all("SELECT sp.*, v.name AS variety, v.image AS variety_image, v.colour, pc.name AS category, l.name AS length, c.code AS currency, u.full_name AS updated_by_name,
                                (SELECT COUNT(*) FROM farm_prices fp WHERE fp.variety_id = sp.variety_id AND fp.length_id = sp.length_id AND fp.is_active = 1) AS farms,
                                (SELECT MIN(fp.buying_price) FROM farm_prices fp WHERE fp.variety_id = sp.variety_id AND fp.length_id = sp.length_id AND fp.currency_id = sp.currency_id AND fp.is_active = 1) AS min_buy,
                                (SELECT MAX(fp.buying_price) FROM farm_prices fp WHERE fp.variety_id = sp.variety_id AND fp.length_id = sp.length_id AND fp.currency_id = sp.currency_id AND fp.is_active = 1) AS max_buy

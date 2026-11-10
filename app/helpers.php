@@ -16,6 +16,12 @@ function money($amount, int $decimals = 2): string
     return number_format((float)($amount ?? 0), $decimals, '.', ',');
 }
 
+/** Unit price: 2 decimals, up to 4 when the price needs them (0.38, 0.375). */
+function price_fmt($n): string
+{
+    return preg_replace('/(\.\d\d\d*?)0+$/', '$1', number_format((float)($n ?? 0), 4, '.', ','));
+}
+
 function qty($n): string
 {
     $n = (float)($n ?? 0);
@@ -52,6 +58,26 @@ function avatar_url(?array $user): string
         return 'uploads/avatars/' . rawurlencode($user['avatar']);
     }
     return '';
+}
+
+/** Public URL of a variety photo (uploads/varieties), or '' when there is none. */
+function variety_img_url(?string $file): string
+{
+    $file = basename((string)$file);
+    return $file !== '' && is_file(ROOT . '/uploads/varieties/' . $file) ? 'uploads/varieties/' . rawurlencode($file) : '';
+}
+
+/** Small variety thumbnail for documents; empty string when the variety has no photo. */
+function variety_img(?string $file, int $size = 26): string
+{
+    $url = variety_img_url($file);
+    return $url ? '<img class="vimg" src="' . e($url) . '" width="' . $size . '" height="' . $size . '" alt="">' : '';
+}
+
+/** Logo printed on documents: the company's own logo (doc-logo.png), falling back to the app logo. */
+function doc_logo_url(): string
+{
+    return is_file(ROOT . '/assets/img/doc-logo.png') ? asset('img/doc-logo.png') : asset('img/logo.png');
 }
 
 function initials(string $name): string

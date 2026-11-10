@@ -13,7 +13,7 @@ $total = 0; $stems = 0;
   <div class="box"><h4>Shipment</h4><div class="kv">
     <span>Shipping agent</span><span><?= e($o['shipping_agent'] ?: '—') ?></span>
     <span>Box type</span><span><?= e($o['box_type'] ?: '—') ?></span>
-    <span>Drop point</span><span><?= e($o['drop_point'] ?: '—') ?></span>
+    <span>Entry</span><span><?= e($o['drop_point'] ?: '—') ?></span>
     <span>Terms</span><span><?= e($o['terms'] ?: '—') ?></span>
     <span>Currency</span><span><?= e($o['currency_code']) ?></span>
   </div></div>
@@ -22,7 +22,7 @@ $total = 0; $stems = 0;
   <thead><tr><th>#</th><th>Variety</th><th>Length</th><th>Order by</th><th class="r">Stems</th><th class="r">Price (<?= e($o['currency_code']) ?>)</th><th class="r">Amount</th></tr></thead>
   <tbody>
   <?php foreach ($lines as $i => $l): $amt = (float)$l['stems'] * (float)$l['selling_price']; $total += $amt; $stems += (int)$l['stems']; ?>
-    <tr><td><?= $i + 1 ?></td><td><strong><?= e($l['variety']) ?></strong><?= $l['remarks'] ? '<br><span class="muted">' . e($l['remarks']) . '</span>' : '' ?></td><td><?= e($l['length']) ?> cm</td><td><?= e($l['order_by']) ?></td>
+    <tr><td><?= $i + 1 ?></td><td><?= variety_img($l['variety_image']) ?><strong><?= e($l['variety']) ?></strong><?= $l['remarks'] ? '<br><span class="muted">' . e($l['remarks']) . '</span>' : '' ?></td><td><?= e($l['length']) ?> cm</td><td><?= e($l['order_by']) ?></td>
       <td class="r"><?= qty($l['stems']) ?></td><td class="r"><?= money($l['selling_price'], 4) ?></td><td class="r"><?= money($amt) ?></td></tr>
   <?php endforeach; ?>
   <?php if (!$lines): ?><tr><td colspan="7" class="c muted">No lines.</td></tr><?php endif; ?>

@@ -32,7 +32,7 @@
   const dt = table('#spTable', {
     ajax: (d, cb) => get('pricing.selling_list', {}, { quiet: true }).then(r => cb({ data: r })).catch(() => cb({ data: [] })),
     columns: [
-      { data: 'variety', render: (v, t, r) => t === 'display' ? `<strong>${esc(v)}</strong><div class="small text-secondary">${esc(r.category || '')}</div>` : v },
+      { data: 'variety', render: (v, t, r) => t === 'display' ? `<div class="d-flex align-items-center">${App.vimg(r.variety_image, 32)}<div><strong>${esc(v)}</strong><div class="small text-secondary">${esc([r.colour, r.category].filter(Boolean).join(' · '))}</div></div></div>` : v },
       { data: 'length' },
       { data: 'price', className: 'num', render: (v, t, r) => t === 'display' ? `<span class="small text-secondary">${esc(r.currency)}</span> <strong>${fmt.money(v, 4)}</strong>` : +v },
       { data: null, className: 'num', render: (r) => r.min_buy !== null ? `${fmt.money(r.min_buy, 4)} – ${fmt.money(r.max_buy, 4)}` : '<span class="text-secondary small">no farms in ' + esc(r.currency) + '</span>' },

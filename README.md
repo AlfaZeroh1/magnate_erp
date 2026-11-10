@@ -5,7 +5,7 @@ Vanilla **PHP 8.1+ / MySQL 8** (or MariaDB 10.6+) with front-end libraries from 
 ## Install
 
 1. Copy this folder to your web root (e.g. `htdocs/magnate`). Apache with `.htaccess` enabled is recommended (it hides `app/`, `sql/`, `docs/`).
-2. Make `app/` writable for the first run (so the installer can write `app/config.php`) and `uploads/avatars/` writable always.
+2. Make `app/` writable for the first run (so the installer can write `app/config.php`) and `uploads/avatars/` + `uploads/varieties/` writable always (also `assets/img/` if you want to replace the document logo from Company Settings).
 3. Open `http://localhost/magnate/install.php` and follow the 3 steps:
    - **Database** – connection details (the database is created if missing).
    - **Tables** – creates the schema + base data. To bring over your v1 data, first import `latest.sql` into a separate DB (e.g. `magnate_legacy`) and type its name here.
@@ -13,6 +13,9 @@ Vanilla **PHP 8.1+ / MySQL 8** (or MariaDB 10.6+) with front-end libraries from 
 4. Delete `install.php` on the live server.
 
 Manual alternative: `mysql magnate < sql/schema.sql`, then `sql/seed.sql`, optionally `sql/migrate_v1.sql`, and copy `app/config.sample.php` → `app/config.php`.
+
+### Upgrading an existing database
+Apply `sql/dbchanges.sql` once (after a backup) when you pull a version that ships it: variety photos, net weight, packing-list arrival details, invoice colour/company columns and bank/branch codes.
 
 ## Architecture
 
@@ -51,7 +54,7 @@ Draft ─▶ Sourcing ─▶ Farm confirmed ─▶ Delivery checked ─▶ Packi
 2. **Send to farms.** This creates one farm order per farm (printable, or emailed from the Farm orders tab).
 3. **Farm confirmation.** Record the stems confirmed, the pack rate and the boxes. Pack rate and boxes calculate each other.
 4. **Delivery check (new).** Record the stems each farm actually delivered against what it confirmed, plus any rejects and the reason for any difference. Completing it posts the farm bills, at received stems × buying price.
-5. **Packing list.** Built from received stems. Fill in AWB, flight, weights and drop point.
+5. **Packing list.** Built from received stems. Fill in AWB, flight, arrival, weights (incl. net weight) and entry.
 6. **Invoice.** Billed on received stems × selling price, at the invoice-date exchange rate. Other costs recorded against the invoice print as extra charges.
 7. **Costs & profit** tab: revenue − farm cost − other costs − expenses linked to the order.
 

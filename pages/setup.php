@@ -5,7 +5,7 @@ $tabs = Resources::setupTabs();
 ?>
 <div class="page-head">
   <div class="title"><div class="ico"><i class="bi bi-sliders"></i></div>
-    <div><h2>Setup Lists</h2><div class="sub">Lengths, box types, marks, categories, drop points, countries, expense types and currencies.</div></div></div>
+    <div><h2>Setup Lists</h2><div class="sub">Lengths, box types, marks, categories, entries, countries, expense types and currencies.</div></div></div>
 </div>
 <ul class="nav nav-tabs-modern mb-3" id="setupTabs">
   <?php foreach ($tabs as $i => $t): $d = Resources::get($t); ?>

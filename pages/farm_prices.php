@@ -37,7 +37,7 @@
     columns: [
       { data: null, orderable: false, render: (r) => editable ? `<input type="checkbox" class="form-check-input row-sel" value="${r.id}" ${sel.has(+r.id) ? 'checked' : ''}>` : '' },
       { data: 'farm' },
-      { data: 'variety', render: (v, t, r) => t === 'display' ? `${esc(v)}<div class="small text-secondary">${esc(r.category || '')}</div>` : v },
+      { data: 'variety', render: (v, t, r) => t === 'display' ? `<div class="d-flex align-items-center">${App.vimg(r.variety_image, 32)}<div>${esc(v)}<div class="small text-secondary">${esc([r.colour, r.category].filter(Boolean).join(' · '))}</div></div></div>` : v },
       { data: 'length' },
       { data: 'buying_price', className: 'num', render: (v, t, r) => t === 'display' ? `<span class="small text-secondary">${esc(r.currency)}</span> ${fmt.money(v, 4)}` : +v },
       { data: 'selling_price', className: 'num', render: (v, t, r) => v === null ? '<span class="text-secondary">—</span>' : (t === 'display' ? `<span class="small text-secondary">${esc(r.currency)}</span> ${fmt.money(v, 4)}` : +v) },

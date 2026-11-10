@@ -11,6 +11,7 @@ use App\Core\Log;
 use App\Core\Request;
 use App\Core\Resources;
 use App\Core\Seq;
+use App\Services\Upload;
 
 /** Generic CRUD engine for everything declared in App\Core\Resources. */
 final class ResourceApi extends BaseApi
@@ -144,21 +145,29 @@ final class ResourceApi extends BaseApi
             }
         }
 
-        $id = DB::tx(function () use ($r, $data, $existing, $id) {
-            // inside the transaction so a reserved document number is never wasted on a failed save
-            if (isset($r['beforeSave'])) $data = ($r['beforeSave'])($data, $existing);
-            if ($existing) {
-                DB::update($r['table'], $data, 'id = :id', ['id' => $id]);
-            } else {
-                $id = DB::insert($r['table'], $data);
-            }
-            if (isset($r['afterSave'])) ($r['afterSave'])($id, $data);
-            $orderId = isset($r['orderOf']) ? ($r['orderOf'])($data) : null;
-            Log::write($r['name'], $id, $existing ? 'update' : 'create',
-                ($existing ? 'Updated ' : 'Created ') . strtolower($r['singular']) . ' ' . $this->describe($r, $data),
-                $orderId ? (int)$orderId : null);
-            return $id;
-        });
+        // Image fields: a new upload replaces the stored file, "<field>_remove" clears it.
+        [$newFiles, $oldFiles] = $this->images($r, $data, $existing);
+        try {
+            $id = DB::tx(function () use ($r, $data, $existing, $id) {
+                // inside the transaction so a reserved document number is never wasted on a failed save
+                if (isset($r['beforeSave'])) $data = ($r['beforeSave'])($data, $existing);
+                if ($existing) {
+                    DB::update($r['table'], $data, 'id = :id', ['id' => $id]);
+                } else {
+                    $id = DB::insert($r['table'], $data);
+                }
+                if (isset($r['afterSave'])) ($r['afterSave'])($id, $data);
+                $orderId = isset($r['orderOf']) ? ($r['orderOf'])($data) : null;
+                Log::write($r['name'], $id, $existing ? 'update' : 'create',
+                    ($existing ? 'Updated ' : 'Created ') . strtolower($r['singular']) . ' ' . $this->describe($r, $data),
+                    $orderId ? (int)$orderId : null);
+                return $id;
+            });
+        } catch (\Throwable $e) {
+            foreach ($newFiles as $f) @unlink($f);
+            throw $e;
+        }
+        foreach ($oldFiles as $f) @unlink($f);
 
         return ['id' => $id, '_message' => $r['singular'] . ($existing ? ' updated.' : ' saved.')];
     }
@@ -180,6 +189,9 @@ final class ResourceApi extends BaseApi
             DB::delete($r['table'], 'id = :id', ['id' => $id]);
             Log::write($r['name'], $id, 'delete', 'Deleted ' . strtolower($r['singular']) . ' ' . $this->describe($r, $row), $orderId ? (int)$orderId : null, $row);
         });
+        foreach ($r['fields'] as $key => $f) {
+            if (($f['type'] ?? '') === 'image' && !empty($row[$key])) @unlink(ROOT . '/uploads/' . $f['dir'] . '/' . basename((string)$row[$key]));
+        }
         return ['_message' => $r['singular'] . ' deleted.'];
     }
 
@@ -216,6 +228,7 @@ final class ResourceApi extends BaseApi
             $type = $f['type'] ?? 'text';
             if ($type === 'static' || !empty($f['readonly'])) continue;
             if (($f['form'] ?? true) === false) continue;
+            if ($type === 'image') continue;   // handled by images()
             $label = $f['label'] ?? $key;
 
             switch ($type) {
@@ -259,6 +272,31 @@ final class ResourceApi extends BaseApi
             if (($f['role'] ?? '') === 'base') unset($data[$key]);
         }
         return [$data, $errors];
+    }
+
+    /**
+     * Store uploaded pictures for image fields and set their file names on $data.
+     * Returns [new files written, old files to delete once the save commits].
+     */
+    private function images(array $r, array &$data, ?array $existing): array
+    {
+        $new = []; $old = [];
+        foreach ($r['fields'] as $key => $f) {
+            if (($f['type'] ?? '') !== 'image') continue;
+            $dir = ROOT . '/uploads/' . $f['dir'];
+            $prev = $existing && !empty($existing[$key]) ? $dir . '/' . basename((string)$existing[$key]) : null;
+            $file = $this->req->files[$key] ?? null;
+            if ($file && ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                $path = Upload::image($file, $dir, substr($f['dir'], 0, 1), (int)config('uploads.image_max_kb', 3072));
+                $new[] = $path;
+                $data[$key] = basename($path);
+                if ($prev) $old[] = $prev;
+            } elseif ($this->req->bool($key . '_remove')) {
+                $data[$key] = null;
+                if ($prev) $old[] = $prev;
+            }
+        }
+        return [$new, $old];
     }
 
     private function describe(array $r, array $data): string

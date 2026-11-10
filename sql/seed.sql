@@ -7,14 +7,16 @@ SET NAMES utf8mb4;
 INSERT INTO settings (`key`, `value`) VALUES
  ('company_name',    'Magnate Flowers Limited'),
  ('company_tagline', 'Fresh-cut flower exporters'),
- ('company_address', 'P.O. Box 27742-00506, Nairobi, Kenya'),
- ('company_email',   'info@magnateflowers.co.ke'),
- ('company_phone',   '+254 712 345 678'),
- ('company_website', 'www.magnateflowers.co.ke'),
- ('company_pin',     'P051234567V'),
+ ('company_address', 'P.O. Box 190-00515, Nairobi, Kenya'),
+ ('company_email',   'magnateflowers@gmail.com'),
+ ('company_phone',   '+254 722 777 051'),
+ ('company_website', 'www.magnateflowers.com'),
+ ('company_pin',     ''),
  ('base_currency',   'KES'),
  ('default_origin',  'NBO'),
  ('volumetric_divisor', '6000'),
+ ('kg_per_box', '15'),
+ ('company_email2', 'sales@magnateflowers.com'),
  ('invoice_terms',   'All invoices to be paid before the day of shipping.'),
  ('origin_declaration', 'The exporter of the products covered by this document declares that, except where otherwise clearly indicated, these products are of Kenyan preferential origin.'),
  ('doc_accent',      '#BE185D');
@@ -97,8 +99,6 @@ INSERT INTO countries (name, iso2) VALUES
 
 INSERT INTO order_by (name) VALUES ('Main');
 
--- From the v1 bank.csv (edit under Administration → Company Settings)
-INSERT INTO bank_accounts (bank_name, branch, account_name, account_number, swift_code, sort_order) VALUES
- ('Equity Bank', 'Westlands', 'Magnate Flowers Limited', '1234567890', 'EQBLKENA', 1),
- ('KCB Bank', 'Upper Hill', 'Magnate Flowers Limited', '2345678901', 'KCBLKENX', 2),
- ('Co-operative Bank', 'Karen', 'Magnate Flowers Limited', '3456789012', 'COOPKENA', 3);
+-- As printed on the company's commercial invoice (edit under Administration → Company Settings)
+INSERT INTO bank_accounts (bank_name, branch, account_name, account_number, swift_code, bank_code, branch_code, sort_order) VALUES
+ ('Equity Bank Ltd', 'JKIA', 'Magnate Flowers Ltd', '0550296514728', 'EQBLKENA', '068', '148', 1);

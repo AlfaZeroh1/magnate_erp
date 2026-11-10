@@ -1,6 +1,6 @@
 /* Order workspace: the whole pipeline for one order on one page. */
 (function () {
-  const { api, get, esc, fmt, num, modalForm, stagePill, select2, setSelect, confirm, busy, can, toast, MG } = App;
+  const { api, get, esc, fmt, num, modalForm, stagePill, select2, setSelect, confirm, busy, can, toast, vimg, MG } = App;
   const $app = $('#orderApp');
   const ORDER_ID = +$app.data('id');
   const FLOW = ['draft', 'sourcing', 'confirmed', 'received', 'packing', 'invoiced', 'closed'];
@@ -69,7 +69,7 @@
                 <span><i class="bi bi-cash text-secondary me-1"></i>${esc(o.currency_code)} @ ${fmt.rate(o.exchange_rate)}</span>
                 ${o.shipping_agent ? `<span><i class="bi bi-send-check text-secondary me-1"></i>${esc(o.shipping_agent)}</span>` : ''}
                 ${o.box_type ? `<span><i class="bi bi-box text-secondary me-1"></i>${esc(o.box_type)}</span>` : ''}
-                ${o.drop_point ? `<span><i class="bi bi-geo-alt text-secondary me-1"></i>${esc(o.drop_point)}</span>` : ''}
+                ${o.drop_point ? `<span><i class="bi bi-geo-alt text-secondary me-1"></i>Entry: ${esc(o.drop_point)}</span>` : ''}
               </div>
               ${o.remarks ? `<div class="small text-secondary mt-1"><i class="bi bi-chat-left-text me-1"></i>${esc(o.remarks)}</div>` : ''}
             </div>
@@ -114,7 +114,7 @@
       sourcing: ['bi-2-circle', 'Farms are reviewing their orders. Record what each farm confirms it can supply, then complete the confirmation.', D.can.confirm ? '<button class="btn btn-primary btn-sm" data-goto="confirm">Record confirmations</button>' : ''],
       confirmed: ['bi-3-circle', 'Flowers are arriving. Count what each farm actually delivered against what it confirmed — this checksum drives the packing list, invoice and farm bills.', D.can.receive ? '<button class="btn btn-primary btn-sm" data-goto="delivery">Start delivery check</button>' : ''],
       received: ['bi-4-circle', 'Delivery is checked. Create the packing list from the received quantities.', D.can.pack ? '<button class="btn btn-primary btn-sm" data-act="pack"><i class="bi bi-box-seam me-1"></i>Create packing list</button>' : ''],
-      packing: ['bi-5-circle', 'Complete the packing details (AWB, weights, drop point) and raise the customer invoice.', D.can.invoice ? '<button class="btn btn-primary btn-sm" data-goto="packing">Go to packing &amp; invoice</button>' : ''],
+      packing: ['bi-5-circle', 'Complete the packing details (AWB, arrival, weights, entry) and raise the customer invoice.', D.can.invoice ? '<button class="btn btn-primary btn-sm" data-goto="packing">Go to packing &amp; invoice</button>' : ''],
       invoiced: ['bi-6-circle', 'Invoiced. Record extra costs and expenses against this order to see the final profit, then close it.', D.can.invoice ? '<button class="btn btn-outline-primary btn-sm" data-act="close"><i class="bi bi-lock me-1"></i>Close order</button>' : ''],
     };
     const m = map[o.stage];
@@ -137,7 +137,7 @@
     D.lines.forEach(l => {
       const value = num(l.stems) * num(l.selling_price); tStems += num(l.stems); tValue += value;
       rows += `<tr class="line-row">
-        <td>${esc(l.variety)} <span class="text-secondary fw-normal small">${esc(l.category || '')}</span></td><td>${esc(l.length)}</td><td>${esc(l.order_by || '')}</td>
+        <td>${vimg(l.variety_image, 28)}${esc(l.variety)} <span class="text-secondary fw-normal small">${esc([l.colour, l.category].filter(Boolean).join(' · '))}</span></td><td>${esc(l.length)}</td><td>${esc(l.order_by || '')}</td>
         <td class="num">${fmt.int(l.stems)}</td><td class="num">${fmt.money(l.selling_price, 4)}</td><td class="num">${fmt.money(value)}</td>
         <td class="num" colspan="2"></td>
         <td class="actions">${editable ? `<button class="btn btn-sm btn-light btn-icon" data-line-edit="${l.id}" title="Edit"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-light btn-icon text-danger" data-line-del="${l.id}" title="Delete"><i class="bi bi-trash"></i></button>` : ''}</td></tr>`;
@@ -327,7 +327,7 @@
   function byFarm() {
     const g = {};
     D.lines.forEach(l => l.allocations.forEach(a => {
-      (g[a.farm_id] = g[a.farm_id] || { farm: a.farm, farm_id: a.farm_id, rows: [] }).rows.push(Object.assign({}, a, { variety: l.variety, length: l.length, order_by: l.order_by }));
+      (g[a.farm_id] = g[a.farm_id] || { farm: a.farm, farm_id: a.farm_id, rows: [] }).rows.push(Object.assign({}, a, { variety: l.variety, variety_image: l.variety_image, length: l.length, order_by: l.order_by }));
     }));
     return Object.values(g).sort((a, b) => a.farm.localeCompare(b.farm));
   }
@@ -346,7 +346,7 @@
       g.rows.forEach(a => {
         const inp = (cls, val, step) => editable ? `<input type="number" min="0" step="${step}" class="form-control form-control-sm cell-input ms-auto ${cls}" value="${val ?? ''}">` : (val !== null && val !== undefined ? fmt.qty(val) : '—');
         body += `<tr class="alloc-row" data-id="${a.id}" data-farm="${a.farm_id}" data-alloc="${a.allocated_stems}">
-          <td>${esc(a.variety)}</td><td>${esc(a.length)}</td><td>${esc(a.order_by || '')}</td>
+          <td>${vimg(a.variety_image, 24)}${esc(a.variety)}</td><td>${esc(a.length)}</td><td>${esc(a.order_by || '')}</td>
           <td class="num">${fmt.int(a.allocated_stems)}</td>
           <td class="num">${inp('c-conf', a.confirmed_stems, 1)}<div class="invalid-feedback" data-err="c_${a.id}"></div></td>
           <td class="num">${inp('c-rate', a.pack_rate, 'any')}</td>
@@ -422,7 +422,7 @@
         const c = num(a.confirmed_stems);
         const inp = (cls, val, step) => editable ? `<input type="number" min="0" step="${step}" class="form-control form-control-sm cell-input ms-auto ${cls}" value="${val ?? ''}">` : (val !== null && val !== undefined ? fmt.qty(val) : '—');
         body += `<tr class="alloc-row" data-id="${a.id}" data-farm="${a.farm_id}" data-conf="${c}" data-cbox="${num(a.confirmed_boxes)}">
-          <td>${esc(a.variety)}</td><td>${esc(a.length)}</td>
+          <td>${vimg(a.variety_image, 24)}${esc(a.variety)}</td><td>${esc(a.length)}</td>
           <td class="num">${fmt.int(c)}</td><td class="num">${fmt.qty(a.confirmed_boxes)}</td>
           <td class="num">${inp('r-rec', a.received_stems, 1)}</td>
           <td class="num">${inp('r-box', a.received_boxes, 'any')}</td>
@@ -496,17 +496,23 @@
     }
     const plEditable = can('packing.edit') && pl.status === 'open';
     // summary by line (received)
-    const sum = D.lines.map(l => ({ v: l.variety, len: l.length, by: l.order_by, stems: l.allocations.reduce((s, a) => s + num(a.received_stems), 0), boxes: l.allocations.reduce((s, a) => s + num(a.received_boxes), 0), price: l.selling_price })).filter(x => x.stems > 0);
+    const sum = D.lines.map(l => ({ v: l.variety, img: l.variety_image, len: l.length, by: l.order_by, stems: l.allocations.reduce((s, a) => s + num(a.received_stems), 0), boxes: l.allocations.reduce((s, a) => s + num(a.received_boxes), 0), price: l.selling_price })).filter(x => x.stems > 0);
+    const totalBoxes = sum.reduce((s, x) => s + x.boxes, 0);
+    const suggestKg = Math.round(totalBoxes * num(D.kg_per_box || 15) * 100) / 100;
     $b.html(`
       <div class="row g-4">
         <div class="col-lg-5">
           <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-1"></i>Packing list ${esc(pl.packing_list_no)} <span class="text-secondary fw-normal">· Consignment ${esc(pl.consignment_no)}</span></h6>
           <form id="plForm" class="row g-2">
-            <div class="col-12"><label class="form-label">Drop point</label><select class="form-select" name="drop_point_id" ${plEditable ? '' : 'disabled'}></select></div>
+            <div class="col-12"><label class="form-label">ENTRY</label><select class="form-select" name="drop_point_id" ${plEditable ? '' : 'disabled'}></select></div>
             <div class="col-6"><label class="form-label">AWB number</label><input class="form-control" name="awb_no" value="${esc(pl.awb_no || '')}" ${plEditable ? '' : 'disabled'}></div>
             <div class="col-6"><label class="form-label">Flight</label><input class="form-control" name="flight_no" value="${esc(pl.flight_no || '')}" ${plEditable ? '' : 'disabled'}></div>
+            <div class="col-6"><label class="form-label">Airline</label><input class="form-control" name="airline" placeholder="e.g. MS" value="${esc(pl.airline || '')}" ${plEditable ? '' : 'disabled'}></div>
+            <div class="col-6"><label class="form-label">Arrival date</label><input type="date" class="form-control" name="arrival_date" value="${esc(pl.arrival_date || '')}" ${plEditable ? '' : 'disabled'}></div>
+            <div class="col-12"><label class="form-label">Arrival note</label><input class="form-control" name="arrival_note" maxlength="150" placeholder="e.g. Monday evening" value="${esc(pl.arrival_note || '')}" ${plEditable ? '' : 'disabled'}><div class="form-text">Printed on the packing list: "The shipment will arrive on … on &lt;airline&gt; AWB …"</div></div>
             <div class="col-6"><label class="form-label">Gross weight (kg)</label><input type="number" step="0.01" min="0" class="form-control" name="gross_weight_kg" value="${pl.gross_weight_kg ?? ''}" ${plEditable ? '' : 'disabled'}></div>
             <div class="col-6"><label class="form-label">Volume weight (kg)</label><input type="number" step="0.01" min="0" class="form-control" name="volume_weight_kg" value="${pl.volume_weight_kg ?? ''}" ${plEditable ? '' : 'disabled'}></div>
+            <div class="col-6"><label class="form-label">Net weight (kg)</label><input type="number" step="0.01" min="0" class="form-control" name="net_weight_kg" value="${pl.net_weight_kg ?? ''}" placeholder="${fmt.qty(suggestKg)}" ${plEditable ? '' : 'disabled'}></div>
             <div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2" ${plEditable ? '' : 'disabled'}>${esc(pl.notes || '')}</textarea></div>
             <div class="col-12 d-flex gap-2 flex-wrap">
               ${plEditable ? '<button class="btn btn-light" type="submit"><i class="bi bi-save me-1"></i>Save packing details</button>' : ''}
@@ -518,14 +524,14 @@
           <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-1"></i>Invoice</h6>
           <div class="table-responsive"><table class="table table-sm">
             <thead><tr><th>Variety</th><th>Length</th><th class="num">Stems</th><th class="num">Boxes</th><th class="num">Price</th><th class="num">Amount (${esc(cur())})</th></tr></thead>
-            <tbody>${sum.map(x => `<tr><td>${esc(x.v)}</td><td>${esc(x.len)}</td><td class="num">${fmt.int(x.stems)}</td><td class="num">${fmt.qty(x.boxes)}</td><td class="num">${fmt.money(x.price, 4)}</td><td class="num">${fmt.money(x.stems * num(x.price))}</td></tr>`).join('')}</tbody>
+            <tbody>${sum.map(x => `<tr><td>${vimg(x.img, 24)}${esc(x.v)}</td><td>${esc(x.len)}</td><td class="num">${fmt.int(x.stems)}</td><td class="num">${fmt.qty(x.boxes)}</td><td class="num">${fmt.money(x.price, 4)}</td><td class="num">${fmt.money(x.stems * num(x.price))}</td></tr>`).join('')}</tbody>
             <tfoot><tr><th colspan="2">Total</th><th class="num">${fmt.int(sum.reduce((s, x) => s + x.stems, 0))}</th><th class="num">${fmt.qty(sum.reduce((s, x) => s + x.boxes, 0))}</th><th></th><th class="num">${fmt.money(sum.reduce((s, x) => s + x.stems * num(x.price), 0))}</th></tr></tfoot>
           </table></div>
           ${inv && inv.status === 'open'
             ? `<div class="alert alert-success d-flex align-items-center gap-3 flex-wrap mb-0"><i class="bi bi-receipt fs-4"></i><div class="me-auto"><strong>${esc(inv.invoice_no)}</strong> issued ${fmt.date(inv.invoice_date)} · ${esc(cur())} ${fmt.money(inv.total)}<div class="small">Due ${fmt.date(inv.due_date)}</div></div><a class="btn btn-success btn-sm" target="_blank" href="print.php?doc=invoice&id=${inv.id}"><i class="bi bi-printer me-1"></i>Print invoice</a></div>`
             : (D.can.invoice && D.order.stage === 'packing'
-              ? `<div class="d-flex flex-wrap gap-2 align-items-end"><div><label class="form-label">Invoice date</label><input type="date" class="form-control" id="invDate" value="${App.today()}"></div><button class="btn btn-primary" id="mkInvoice"><i class="bi bi-receipt me-1"></i>Create invoice</button></div>
-                 <div class="form-text">Billed on received stems at each line's selling price. Exchange rate is taken on the invoice date.</div>`
+              ? `<div class="d-flex flex-wrap gap-2 align-items-end"><div><label class="form-label">Invoice date</label><input type="date" class="form-control" id="invDate" value="${App.today()}"></div><div><label class="form-label">Net weight (kg) <span class="req">*</span></label><input type="number" step="0.01" min="0.01" class="form-control" id="invKg" style="max-width:150px" value="${pl.net_weight_kg ?? (suggestKg || '')}"></div><button class="btn btn-primary" id="mkInvoice"><i class="bi bi-receipt me-1"></i>Create invoice</button></div>
+                 <div class="form-text">Billed on received stems at each line's selling price. Exchange rate is taken on the invoice date. Net weight is printed on the invoice (suggested: ${fmt.qty(totalBoxes)} boxes × ${fmt.qty(num(D.kg_per_box || 15))} kg).</div>`
               : '<div class="text-secondary small">No invoice yet.</div>')}
         </div>
       </div>`);
@@ -539,9 +545,11 @@
       try { await api('packing.update', data); load(); } catch (err) {} finally { busy($btn, false); }
     });
     $('#mkInvoice').on('click', async function () {
-      if (!(await confirm({ title: 'Create the invoice?', text: `Invoice ${esc(D.order.customer_name)} for the received stems in ${esc(cur())}.`, confirmText: 'Create invoice' }))) return;
+      const kg = num($('#invKg').val());
+      if (!(kg > 0)) { $('#invKg').addClass('is-invalid').trigger('focus'); toast('Enter the net weight in kilogrammes before invoicing.', 'warning'); return; }
+      if (!(await confirm({ title: 'Create the invoice?', text: `Invoice ${esc(D.order.customer_name)} for the received stems in ${esc(cur())}, net weight ${fmt.qty(kg)} kg.`, confirmText: 'Create invoice' }))) return;
       busy(this, true, 'Creating…');
-      try { const r = await api('orders.invoice', { id: ORDER_ID, invoice_date: $('#invDate').val() }); window.open('print.php?doc=invoice&id=' + r.invoice_id, '_blank'); activeTab = 'money'; load(); }
+      try { const r = await api('orders.invoice', { id: ORDER_ID, invoice_date: $('#invDate').val(), net_weight_kg: kg }); window.open('print.php?doc=invoice&id=' + r.invoice_id, '_blank'); activeTab = 'money'; load(); }
       catch (e) { busy(this, false); }
     });
   }

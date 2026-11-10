@@ -21,7 +21,7 @@ final class OrderService
 
     public static function find(int $id): array
     {
-        $o = DB::one("SELECT o.*, c.name AS customer_name, c.code AS customer_code, c.terms, c.credit_days, c.truck,
+        $o = DB::one("SELECT o.*, c.name AS customer_name, c.code AS customer_code, c.terms, c.credit_days, c.truck, c.address AS customer_address,
                              co.name AS country, cur.code AS currency_code, cur.symbol AS currency_symbol,
                              bt.name AS box_type, sa.name AS shipping_agent, dp.name AS drop_point,
                              u.full_name AS created_by_name
@@ -55,7 +55,7 @@ final class OrderService
     /** Lines with nested allocations, one query each (no N+1). */
     public static function lines(int $orderId): array
     {
-        $lines = DB::all("SELECT ol.*, v.name AS variety, pc.name AS category, l.name AS length, ob.name AS order_by
+        $lines = DB::all("SELECT ol.*, v.name AS variety, v.image AS variety_image, v.colour, pc.name AS category, l.name AS length, ob.name AS order_by
                             FROM order_lines ol
                             JOIN varieties v ON v.id = ol.variety_id
                             LEFT JOIN product_categories pc ON pc.id = v.category_id
@@ -284,7 +284,7 @@ final class OrderService
         });
     }
 
-    public static function createInvoice(array $order, ?string $invoiceDate = null): int
+    public static function createInvoice(array $order, ?string $invoiceDate = null, ?float $netWeightKg = null): int
     {
         self::requireStage($order, ['packing'], 'invoice');
         if (DB::val("SELECT id FROM invoices WHERE order_id = :o AND kind = 'order' AND status = 'open'", ['o' => $order['id']])) {
@@ -296,23 +296,27 @@ final class OrderService
         $date = $invoiceDate ?: date('Y-m-d');
         $rate = Fx::rateOrFail((int)$order['currency_id'], $date);
 
-        // Invoice per line on RECEIVED stems at the customer selling price.
-        $lines = DB::all("SELECT ol.id, v.name AS variety, ol.variety_id, l.name AS length, ob.name AS order_by, ol.selling_price,
+        // Invoice on RECEIVED stems at the customer selling price: one line per order line and supplying farm,
+        // so the invoice shows variety, colour, company (farm), stem length, boxes and stems per box.
+        $lines = DB::all("SELECT ol.id, v.name AS variety, ol.variety_id, v.colour, pc.name AS category, l.name AS length, ob.name AS order_by,
+                                 ol.selling_price, la.farm_id, f.name AS farm,
                                  SUM(COALESCE(la.received_stems,0)) AS stems, SUM(COALESCE(la.received_boxes,0)) AS boxes
                             FROM order_lines ol
                             JOIN varieties v ON v.id = ol.variety_id
+                            LEFT JOIN product_categories pc ON pc.id = v.category_id
                             JOIN lengths l ON l.id = ol.length_id
                             LEFT JOIN order_by ob ON ob.id = ol.order_by_id
                             JOIN line_allocations la ON la.order_line_id = ol.id
+                            JOIN farms f ON f.id = la.farm_id
                            WHERE ol.order_id = :o
-                           GROUP BY ol.id, v.name, ol.variety_id, l.name, ob.name, ol.selling_price, l.sort_order
+                           GROUP BY ol.id, v.name, ol.variety_id, v.colour, pc.name, l.name, ob.name, ol.selling_price, la.farm_id, f.name, l.sort_order
                           HAVING stems > 0
-                           ORDER BY v.name, l.sort_order", ['o' => $order['id']]);
+                           ORDER BY pc.name IS NULL, pc.name, v.name, l.sort_order, f.name", ['o' => $order['id']]);
         if (!$lines) throw new HttpException('No received stems to invoice.', 422);
         $zero = array_filter($lines, fn($l) => (float)$l['selling_price'] <= 0);
         if ($zero) throw new HttpException('Set a selling price on: ' . implode(', ', array_map(fn($l) => $l['variety'] . ' ' . $l['length'], $zero)), 422);
 
-        return DB::tx(function () use ($order, $pl, $lines, $date, $rate) {
+        return DB::tx(function () use ($order, $pl, $lines, $date, $rate, $netWeightKg) {
             $total = 0.0;
             foreach ($lines as $l) $total += round((float)$l['stems'] * (float)$l['selling_price'], 2);
             $boxes = array_sum(array_map(fn($l) => (float)$l['boxes'], $lines));
@@ -322,7 +326,7 @@ final class OrderService
                 'customer_id' => $order['customer_id'], 'bill_to_customer_id' => $order['customer_id'],
                 'invoice_date' => $date, 'due_date' => date('Y-m-d', strtotime($date . ' +' . (int)$order['credit_days'] . ' days')),
                 'currency_id' => $order['currency_id'], 'exchange_rate' => $rate,
-                'total' => round($total, 2), 'base_total' => round($total * $rate, 2), 'boxes' => $boxes,
+                'total' => round($total, 2), 'base_total' => round($total * $rate, 2), 'boxes' => $boxes, 'net_weight_kg' => $netWeightKg,
                 'shipment_details' => trim(($order['shipping_agent'] ?? '') . ' ' . ($pl['awb_no'] ? 'AWB ' . $pl['awb_no'] : '')),
                 'created_by' => Auth::id(),
             ]);
@@ -330,12 +334,13 @@ final class OrderService
                 DB::insert('invoice_lines', [
                     'invoice_id' => $invId, 'description' => $l['variety'], 'variety_id' => $l['variety_id'],
                     'length_label' => $l['length'], 'order_by_label' => $l['order_by'],
+                    'colour' => $l['colour'], 'category_label' => $l['category'], 'farm_id' => $l['farm_id'], 'farm_label' => $l['farm'],
                     'quantity' => $l['stems'], 'unit' => 'stems', 'boxes' => $l['boxes'],
                     'pack_rate' => (float)$l['boxes'] > 0 ? round((float)$l['stems'] / (float)$l['boxes'], 2) : null,
                     'unit_price' => $l['selling_price'], 'amount' => round((float)$l['stems'] * (float)$l['selling_price'], 2), 'sort_order' => $i,
                 ]);
             }
-            DB::update('packing_lists', ['status' => 'invoiced'], 'id = :id', ['id' => $pl['id']]);
+            DB::update('packing_lists', ['status' => 'invoiced'] + ($netWeightKg !== null ? ['net_weight_kg' => $netWeightKg] : []), 'id = :id', ['id' => $pl['id']]);
             self::setStage($order, 'invoiced', sprintf('Invoice %s issued: %s %s', $no, $order['currency_code'], number_format($total, 2)), 'invoiced_at');
             return $invId;
         });

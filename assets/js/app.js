@@ -65,6 +65,11 @@
   const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   const can = (p) => (MG.perms || []).includes(p) || !!(MG.user && MG.user.is_super);
   const currencyCode = (id) => { const c = (MG.currencies || []).find(x => +x.id === +id); return c ? c.code : ''; };
+  // variety photos (uploads/varieties); a neutral flower icon when there is none
+  const vimgUrl = (file) => file ? 'uploads/varieties/' + encodeURIComponent(file) : '';
+  const vimg = (file, size = 28) => file
+    ? `<img class="vimg" src="${vimgUrl(file)}" width="${size}" height="${size}" alt="" loading="lazy">`
+    : `<span class="vimg vimg-none" style="width:${size}px;height:${size}px"><i class="bi bi-flower2"></i></span>`;
   const loader = (text = 'Loading…') => `<div class="mg-loader"><img class="mg-bloom" src="assets/img/favicon.svg" alt=""><span>${esc(text)}</span></div>`;
   const skeletonRows = (n = 5) => Array.from({ length: n }, () => '<div class="skeleton mb-2" style="height:38px"></div>').join('');
   const debounce = (fn, ms = 250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
@@ -152,7 +157,8 @@
         data: (p) => ({ r: 'resource.options', source, q: p.term || '' }),
         processResults: (res) => ({ results: (res && res.data) || [] })
       },
-      templateResult: (d) => d.loading ? d.text : $(`<div>${esc(d.text)}${d.category ? `<div class="small text-secondary">${esc(d.category)}</div>` : ''}</div>`)
+      templateResult: (d) => d.loading ? d.text : $(`<div class="d-flex align-items-center gap-2">${d.image !== undefined ? vimg(d.image, 30) : ''}<div>${esc(d.text)}${d.category || d.colour ? `<div class="small text-secondary">${esc([d.category, d.colour].filter(Boolean).join(' · '))}</div>` : ''}</div></div>`),
+      templateSelection: (d) => d.image ? $(`<span>${vimg(d.image, 20)}${esc(d.text)}</span>`) : d.text
     });
     return $el;
   }
@@ -202,6 +208,15 @@
         input = `<input type="text" class="form-control" id="${id}" name="${f.name}" value="${esc(val)}" list="${id}_dl" autocomplete="off"${f.required ? ' required' : ''}${ro}><datalist id="${id}_dl">${(f.options || []).map(o => `<option value="${esc(o)}">`).join('')}</datalist>`; break;
       case 'static':
         input = `<input type="text" class="form-control-plaintext fw-semibold" id="${id}" value="${esc(val || '')}" placeholder="${esc(f.placeholder || '')}" readonly>`; break;
+      case 'image': {
+        const url = val ? vimgUrl(val) : '';
+        input = `<div class="d-flex align-items-center gap-3 img-field">
+          <div class="img-preview">${url ? `<img src="${esc(url)}" alt="">` : '<i class="bi bi-image"></i>'}</div>
+          <div class="flex-grow-1"><input type="file" class="form-control" id="${id}" name="${f.name}" accept="image/jpeg,image/png,image/webp"${ro}>
+          ${url ? `<div class="form-check mt-1"><input class="form-check-input" type="checkbox" id="${id}_rm" name="${f.name}_remove" value="1"><label class="form-check-label small" for="${id}_rm">Remove current photo</label></div>` : ''}</div>
+        </div>`;
+        break;
+      }
       case 'password':
         input = `<input type="password" class="form-control" id="${id}" name="${f.name}" autocomplete="new-password"${f.required ? ' required' : ''}>`; break;
       default:
@@ -301,6 +316,7 @@
         if (f.type === 'static' || f.readonly) return;
         const $i = field(f.name);
         if (f.type === 'switch') data[f.name] = $i.is(':checked') ? 1 : 0;
+        else if (f.type === 'image') { const file = $i[0] && $i[0].files[0]; if (file) data[f.name] = file; if ($f.find(`[name="${f.name}_remove"]`).is(':checked')) data[f.name + '_remove'] = 1; }
         else data[f.name] = $i.val() ?? '';
       });
       // client-side required check
@@ -449,6 +465,12 @@
     $(document).on('click', '[data-quick-nav]', openQuick);
     document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openQuick(); } });
 
+    // click a variety photo to see it large
+    $(document).on('click', 'img.vimg', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      Swal.fire({ imageUrl: this.src, imageAlt: '', showConfirmButton: false, showCloseButton: true, width: 520, padding: '12px' });
+    });
+
     // tooltips
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
 
@@ -461,5 +483,5 @@
     });
   });
 
-  window.App = { MG, api, get, toast, confirm, busy, esc, num, fmt, today, can, loader, skeletonRows, debounce, select2, setSelect, modalForm, table, fxPrompt, currencyCode, stagePill, palette, progress };
+  window.App = { MG, api, get, toast, confirm, busy, esc, num, fmt, today, can, loader, vimg, vimgUrl, skeletonRows, debounce, select2, setSelect, modalForm, table, fxPrompt, currencyCode, stagePill, palette, progress };
 })();

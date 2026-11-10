@@ -11,7 +11,7 @@
       { name: 'currency_id', label: 'Currency', type: 'select', source: 'currencies', required: true, help: 'Defaults to the customer\'s currency' },
       { name: 'box_type_id', label: 'Box type', type: 'select', source: 'box_types' },
       { name: 'shipping_agent_id', label: 'Shipping agent', type: 'select', source: 'shipping_agents' },
-      { name: 'drop_point_id', label: 'Drop point', type: 'select', source: 'drop_points' },
+      { name: 'drop_point_id', label: 'Entry', type: 'select', source: 'drop_points' },
       { name: 'customer_ref', label: 'Customer reference / PO', type: 'text', col: 12 },
       { name: 'remarks', label: 'Remarks', type: 'textarea', col: 12 }
     ];

@@ -1,3 +1,5 @@
 app/config.php
 uploads/avatars/*
 !uploads/avatars/.gitkeep
+uploads/varieties/*
+!uploads/varieties/.gitkeep

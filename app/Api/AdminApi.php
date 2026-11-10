@@ -14,7 +14,7 @@ use App\Services\Upload;
 final class AdminApi extends BaseApi
 {
     private const SETTING_KEYS = ['company_name', 'company_tagline', 'company_address', 'company_email', 'company_phone', 'company_website', 'company_pin',
-                                  'invoice_terms', 'origin_declaration', 'doc_accent', 'default_origin', 'volumetric_divisor'];
+                                  'invoice_terms', 'origin_declaration', 'doc_accent', 'default_origin', 'volumetric_divisor', 'company_email2', 'kg_per_box'];
 
     protected function rules(): array
     {
@@ -205,7 +205,7 @@ final class AdminApi extends BaseApi
     protected function doSettings(): array
     {
         $all = Settings::all();
-        return array_intersect_key($all, array_flip(self::SETTING_KEYS)) + ['logo' => is_file(ROOT . '/assets/img/logo.png') ? asset('img/logo.png') : null];
+        return array_intersect_key($all, array_flip(self::SETTING_KEYS)) + ['logo' => doc_logo_url()];
     }
 
     protected function doSettingsSave(): array
@@ -217,11 +217,11 @@ final class AdminApi extends BaseApi
         return ['_message' => 'Settings saved.'];
     }
 
-    /** Replace assets/img/logo.png (used on every document). */
+    /** Replace assets/img/doc-logo.png, the logo printed on every document (the app icon/favicons are separate). */
     protected function doLogoUpload(): array
     {
         $file = $this->req->files['logo'] ?? null;
-        $path = Upload::image($file, ROOT . '/assets/img', 'logo', 4096, ['png'], true);
+        $path = Upload::image($file, ROOT . '/assets/img', 'doc-logo', 4096, ['png'], true);
         Log::write('settings', null, 'logo', 'Company logo replaced');
         return ['url' => asset('img/' . basename($path)), '_message' => 'Logo updated. It now appears on all documents.'];
     }

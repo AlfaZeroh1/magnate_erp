@@ -41,12 +41,16 @@ final class PackingApi extends BaseApi
         $pl = DB::one('SELECT * FROM packing_lists WHERE id = :id', ['id' => $this->req->int('id')]);
         if (!$pl) throw new HttpException('Packing list not found.', 404);
         $data = [];
-        foreach (['drop_point_id' => 'intOrNull', 'awb_no' => 'strOrNull', 'flight_no' => 'strOrNull', 'gross_weight_kg' => 'numOrNull', 'volume_weight_kg' => 'numOrNull', 'notes' => 'strOrNull'] as $k => $fn) {
+        foreach (['drop_point_id' => 'intOrNull', 'awb_no' => 'strOrNull', 'flight_no' => 'strOrNull', 'gross_weight_kg' => 'numOrNull', 'volume_weight_kg' => 'numOrNull', 'net_weight_kg' => 'numOrNull',
+                  'airline' => 'strOrNull', 'arrival_date' => 'date', 'arrival_note' => 'strOrNull', 'notes' => 'strOrNull'] as $k => $fn) {
             if ($this->req->has($k)) $data[$k] = $this->req->$fn($k);
         }
         if ($pl['status'] === 'invoiced') {
             // after invoicing only logistics references can change, never quantities
-            $data = array_intersect_key($data, array_flip(['awb_no', 'flight_no', 'notes', 'drop_point_id']));
+            $data = array_intersect_key($data, array_flip(['awb_no', 'flight_no', 'airline', 'arrival_date', 'arrival_note', 'notes', 'drop_point_id']));
+        }
+        foreach (['gross_weight_kg', 'volume_weight_kg', 'net_weight_kg'] as $k) {
+            if (isset($data[$k]) && $data[$k] < 0) throw HttpException::validation([$k => 'Weight cannot be negative.']);
         }
         DB::update('packing_lists', $data, 'id = :id', ['id' => $pl['id']]);
         Log::write('packing_list', (int)$pl['id'], 'update', "Packing list {$pl['packing_list_no']} details updated", (int)$pl['order_id']);

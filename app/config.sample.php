@@ -24,5 +24,6 @@ return [
     ],
     'uploads' => [
         'avatar_max_kb' => 2048,
+        'image_max_kb'  => 3072,   // variety photos
     ],
 ];
